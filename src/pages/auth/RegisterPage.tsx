@@ -5,10 +5,8 @@ import Button from "../../components/Button";
 import PasswordField from "../../components/PasswordField";
 import { ApiError } from "../../api/client";
 import { registerUser } from "../../api/auth.api";
-import { presentationFallback } from "../../config/presentationFallback";
 
 type RegisterErrors = {
-  name?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -16,9 +14,8 @@ type RegisterErrors = {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validateRegister(name: string, email: string, password: string, confirmPassword: string): RegisterErrors {
+function validateRegister(email: string, password: string, confirmPassword: string): RegisterErrors {
   const errors: RegisterErrors = {};
-  if (!name.trim()) errors.name = "Enter your name.";
   if (!email.trim()) errors.email = "Enter your email address.";
   else if (!emailPattern.test(email.trim())) errors.email = "Enter a valid email address.";
   if (!password) errors.password = "Create a password.";
@@ -37,7 +34,6 @@ function getErrorMessage(error: unknown): string {
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,7 +43,7 @@ function RegisterPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const nextErrors = validateRegister(name, email, password, confirmPassword);
+    const nextErrors = validateRegister(email, password, confirmPassword);
     setErrors(nextErrors);
     setApiError("");
     if (Object.keys(nextErrors).length > 0) return;
@@ -74,18 +70,13 @@ function RegisterPage() {
           <div className="brand"><div className="brand-mark" aria-hidden="true"><span /></div><span>Watch<span className="brand-accent">Dog</span></span></div>
           <h1 id="register-title">Create your account</h1>
           <p>Set up your workspace and start monitoring.</p>
-          <div className={`form-field ${errors.name ? "has-error" : ""}`}>
-            <label htmlFor="name">Full name</label>
-            <input id="name" type="text" value={name} placeholder={presentationFallback.displayName} autoComplete="name" aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? "name-error" : undefined} onChange={(event) => setName(event.target.value)} />
-            {errors.name && <p className="field-error" id="name-error">{errors.name}</p>}
-          </div>
           <div className={`form-field ${errors.email ? "has-error" : ""}`}>
             <label htmlFor="register-email">Work email</label>
             <input id="register-email" type="email" value={email} placeholder="you@company.com" autoComplete="email" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "register-email-error" : undefined} onChange={(event) => setEmail(event.target.value)} />
             {errors.email && <p className="field-error" id="register-email-error">{errors.email}</p>}
           </div>
-          <PasswordField id="register-password" label="Password" value={password} error={errors.password} autoComplete="new-password" onChange={setPassword} onBlur={() => setErrors(validateRegister(name, email, password, confirmPassword))} />
-          <PasswordField id="confirm-password" label="Confirm password" value={confirmPassword} error={errors.confirmPassword} autoComplete="new-password" onChange={setConfirmPassword} onBlur={() => setErrors(validateRegister(name, email, password, confirmPassword))} />
+          <PasswordField id="register-password" label="Password" value={password} error={errors.password} autoComplete="new-password" onChange={setPassword} onBlur={() => setErrors(validateRegister(email, password, confirmPassword))} />
+          <PasswordField id="confirm-password" label="Confirm password" value={confirmPassword} error={errors.confirmPassword} autoComplete="new-password" onChange={setConfirmPassword} onBlur={() => setErrors(validateRegister(email, password, confirmPassword))} />
           <div className="auth-form-error" role="alert" aria-live="polite">{apiError}</div>
           <Button className="form-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? "Creating account..." : "Create account"}</Button>
           <p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p>

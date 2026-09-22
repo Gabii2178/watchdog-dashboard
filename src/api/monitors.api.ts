@@ -28,6 +28,10 @@ export type CreateMonitorResponse = {
   notificationCooldown: number;
 };
 
+export type UpdateMonitorRequest = Partial<CreateMonitorRequest>;
+
+export type UpdateMonitorResponse = CreateMonitorResponse;
+
 export type MonitorActionResponse = {
   id: number;
   status: string;
@@ -41,11 +45,21 @@ export type MonitorCheckResponse = {
   similarity: number;
   changed: boolean;
   createdAt: string;
-  evidence?: {
+  evidence: {
     before: boolean;
     after: boolean;
     diff: boolean;
   };
+  visualChangeMetadata: VisualChangeMetadata | null;
+  pageSnapshotDelta: PageSnapshotDelta | null;
+  pageChangeSummary: PageChangeSummary | null;
+};
+
+export type ManualMonitorCheckResponse = {
+  id: number;
+  monitorId: number;
+  similarity: number;
+  changed: boolean;
 };
 
 export type MonitorChecksResponse = {
@@ -65,6 +79,87 @@ export type MonitorCheckEvidenceResponse = {
     after: string | null;
     diff: string | null;
   };
+  visualChangeMetadata: VisualChangeMetadata | null;
+};
+
+export type ChangedRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type VisualChangeMetadata = {
+  changedPixelCount: number | null;
+  changedPixelRatio: number | null;
+  changedBoundingBox: ChangedRegion | null;
+  changedRegions: ChangedRegion[];
+};
+
+export type PageSnapshotHeading = {
+  level: 1 | 2 | 3;
+  text: string;
+  order: number;
+};
+
+export type PageSnapshotLink = {
+  text: string;
+  href: string;
+  order: number;
+};
+
+export type PageSnapshotButton = {
+  label: string;
+  disabled: boolean;
+  order: number;
+};
+
+export type PageSnapshotImage = {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  order: number;
+};
+
+export type PageSnapshotChanged<T> = {
+  previous: T;
+  current: T;
+};
+
+export type PageDimensions = {
+  width: number;
+  height: number;
+};
+
+export type PageSnapshotDelta = {
+  titleChanged: boolean;
+  previousTitle: string | null;
+  currentTitle: string | null;
+  finalUrlChanged: boolean;
+  previousFinalUrl: string | null;
+  currentFinalUrl: string | null;
+  headingsAdded: PageSnapshotHeading[];
+  headingsRemoved: PageSnapshotHeading[];
+  headingsChanged: PageSnapshotChanged<PageSnapshotHeading>[];
+  linksAdded: PageSnapshotLink[];
+  linksRemoved: PageSnapshotLink[];
+  linksChanged: PageSnapshotChanged<PageSnapshotLink>[];
+  buttonsAdded: PageSnapshotButton[];
+  buttonsRemoved: PageSnapshotButton[];
+  buttonsChanged: PageSnapshotChanged<PageSnapshotButton>[];
+  imagesAdded: PageSnapshotImage[];
+  imagesRemoved: PageSnapshotImage[];
+  imagesChanged: PageSnapshotChanged<PageSnapshotImage>[];
+  pageDimensionsChanged: boolean;
+  previousPageDimensions: PageDimensions | null;
+  currentPageDimensions: PageDimensions | null;
+};
+
+export type PageChangeSummary = {
+  changeCount: number;
+  hasChanges: boolean;
+  statements: string[];
 };
 
 export function getMonitors(token?: string): Promise<MonitorBackend[]> {
@@ -110,6 +205,18 @@ export function createMonitor(payload: CreateMonitorRequest, token?: string): Pr
   });
 }
 
+export function updateMonitor(
+  id: number,
+  payload: UpdateMonitorRequest,
+  token?: string,
+): Promise<UpdateMonitorResponse> {
+  return request<UpdateMonitorResponse>(`/monitors/${id}`, {
+    method: "PATCH",
+    body: payload,
+    token,
+  });
+}
+
 export function pauseMonitor(id: number, token?: string): Promise<MonitorActionResponse> {
   return request<MonitorActionResponse>(`/monitors/${id}/pause`, {
     method: "POST",
@@ -124,8 +231,8 @@ export function resumeMonitor(id: number, token?: string): Promise<MonitorAction
   });
 }
 
-export function checkMonitorNow(id: number, token?: string): Promise<MonitorCheckResponse> {
-  return request<MonitorCheckResponse>(`/monitors/${id}/check`, {
+export function checkMonitorNow(id: number, token?: string): Promise<ManualMonitorCheckResponse> {
+  return request<ManualMonitorCheckResponse>(`/monitors/${id}/check`, {
     method: "POST",
     token,
   });

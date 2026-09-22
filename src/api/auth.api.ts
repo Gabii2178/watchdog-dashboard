@@ -4,6 +4,7 @@ export type User = {
   id: number;
   email: string;
   created_at: string;
+  email_notifications_enabled?: boolean;
 };
 
 export type LoginRequest = {
@@ -32,7 +33,12 @@ export type LoginResponse = {
 
 export type CurrentUserResponse = {
   success: boolean;
-  user: User;
+  user: User & { email_notifications_enabled: boolean };
+};
+
+export type UpdateNotificationPreferenceResponse = {
+  success: boolean;
+  email_notifications_enabled: boolean;
 };
 
 export function registerUser(credentials: RegisterRequest): Promise<RegisterResponse> {
@@ -51,4 +57,17 @@ export function loginUser(credentials: LoginRequest): Promise<LoginResponse> {
 
 export function getCurrentUser(token: string): Promise<CurrentUserResponse> {
   return request<CurrentUserResponse>("/auth/me", { token });
+}
+
+export function updateEmailNotifications(
+  token: string,
+  enabled: boolean,
+): Promise<UpdateNotificationPreferenceResponse> {
+  return request<UpdateNotificationPreferenceResponse>("/auth/me", {
+    method: "PATCH",
+    token,
+    body: {
+      email_notifications_enabled: enabled,
+    },
+  });
 }

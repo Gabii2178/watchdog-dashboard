@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { presentationFallback } from "../config/presentationFallback";
 import { useAuth } from "../auth/useAuth";
@@ -14,11 +14,15 @@ function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
   const pageTitle = location.pathname.startsWith("/monitors")
     ? "Monitors"
     : location.pathname === "/settings"
       ? "Settings"
-      : location.pathname === "/help"
+      : location.pathname === "/account"
+        ? "Account"
+        : location.pathname === "/help"
         ? "Help center"
         : "Overview";
 
@@ -37,8 +41,38 @@ function AppLayout({ children }: AppLayoutProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isMobileNavOpen]);
 
+  useEffect(() => {
+    if (!isAccountMenuOpen) {
+      return;
+    }
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleDocumentClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAccountMenuOpen]);
+
   const closeMobileNav = () => setIsMobileNavOpen(false);
+  const closeAccountMenu = () => setIsAccountMenuOpen(false);
+  const closeAccountMenuAndNavigation = () => {
+    closeAccountMenu();
+    closeMobileNav();
+  };
   const handleLogout = () => {
+    closeAccountMenu();
     logout();
     navigate("/login", { replace: true });
   };
@@ -68,10 +102,31 @@ function AppLayout({ children }: AppLayoutProps) {
         <div className="sidebar-bottom">
           <NavLink to="/settings" onClick={closeMobileNav} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}><Icon name="settings" className="nav-icon" /> <span>Settings</span></NavLink>
           <NavLink to="/help" onClick={closeMobileNav} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}><Icon name="help" className="nav-icon" /> <span>Help center</span></NavLink>
-          <div className="account">
-            <div className="avatar">{presentationFallback.initials}</div>
-            <div className="account-copy"><strong>{user?.email ?? presentationFallback.displayName}</strong><span>{presentationFallback.workspaceName}</span></div>
-            <button className="account-menu" type="button" aria-label="Log out" onClick={handleLogout}><Icon name="more" size={18} /></button>
+          <div className="account" ref={accountRef}>
+            <button
+              className="account-trigger"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={isAccountMenuOpen}
+              aria-controls="account-menu"
+              onClick={() => setIsAccountMenuOpen((isOpen) => !isOpen)}
+            >
+              <span className="avatar">{presentationFallback.initials}</span>
+              <span className="account-copy"><strong>{user?.email ?? presentationFallback.displayName}</strong><span>{presentationFallback.workspaceName}</span></span>
+              <Icon name="chevron-down" size={15} />
+            </button>
+            {isAccountMenuOpen && (
+              <div className="account-dropdown" id="account-menu" role="menu" aria-label="Account menu">
+                <div className="account-dropdown-identity">
+                  <strong>{user?.email ?? presentationFallback.displayName}</strong>
+                  <span>Personal account</span>
+                </div>
+                <NavLink to="/account" role="menuitem" onClick={closeAccountMenuAndNavigation}>Profile / Account</NavLink>
+                <NavLink to="/settings" role="menuitem" onClick={closeAccountMenuAndNavigation}>Settings</NavLink>
+                <NavLink to="/help" role="menuitem" onClick={closeAccountMenuAndNavigation}>Help</NavLink>
+                <button type="button" role="menuitem" onClick={handleLogout}>Log out</button>
+              </div>
+            )}
           </div>
         </div>
       </aside>
